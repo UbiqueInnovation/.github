@@ -1,7 +1,6 @@
 name: Build and Upload to UBDiag
 
 on:
-  push:
   workflow_call:
     inputs:
       projectKey:
@@ -34,7 +33,7 @@ on:
         required: false
 
 jobs:
-  build_dev:
+  build:
     name: Build ${{ inputs.flavor }} Flavor
     runs-on: ubuntu-latest
     steps:
@@ -51,7 +50,7 @@ jobs:
         run: |
           flavor=${{ inputs.flavor }}
           echo ::set-output name=build_uuid::$(cat /proc/sys/kernel/random/uuid)
-          echo ::set-output name=web_icon::${{ github.workspace }}/app/tmp_icon_large_for_backend.png
+          echo ::set-output name=web_icon::${{ github.workspace }}/${{ inputs.appModuleDirectory }}/tmp_icon_large_for_backend.png
           echo ::set-output name=flavor_capitalized::${flavor~}
 
       # Setup the build environment with Java 11 and the Zulu OpenJDK
@@ -61,13 +60,18 @@ jobs:
           distribution: 'zulu'
           java-version: '11'
 
+      # Install Imagemagick for our UBDiag gradle plugin
+      # This should be removed once the plugin does not require imagemagick anymore
+      - name: Install Imagemagick
+        run: sudo apt-get install -y imagemagick
+
       # Setup the build environment with Gradle
       - name: Build app
         uses: gradle/gradle-build-action@v2
         with:
           # Cache entries are not shared among branches. To reduce the amount of cache writes, only allow the main branch to write cache entries and let other branches read them
           # https://github.com/gradle/gradle-build-action#only-write-to-the-cache-from-the-default-branch
-          cache-read-only: ${{ github.ref_name != 'main' }}
+          cache-read-only: ${{ github.ref_name != 'develop' }}
           arguments: |
             assemble${{ steps.vars.outputs.flavor_capitalized }}Release
             test${{ steps.vars.outputs.flavor_capitalized }}DebugUnitTest
