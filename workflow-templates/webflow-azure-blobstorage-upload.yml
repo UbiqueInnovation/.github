@@ -1,0 +1,17 @@
+---
+name: Upload Exported WebFlow .zip To Azure Blob Storage
+on:
+  workflow_dispatch:
+    
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: unzip projectname.webflow.zip -d unzipped
+      - uses: bacongobbler/azure-blob-storage-upload@main
+        with:
+          source_dir: 'unzipped'
+          container_name: '$web'
+          connection_string: ${{ secrets.ConnectionString }}
+          sync: 'true'
